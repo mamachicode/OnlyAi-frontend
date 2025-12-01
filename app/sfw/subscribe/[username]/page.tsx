@@ -1,58 +1,28 @@
+import { NextResponse } from "next/server";
 import prisma from "@/src/lib/prisma";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
-import Link from "next/link";
 
-interface Props {
-  params: { username: string };
-}
-
-export default async function SubscribeSfwPage({ params }: Props) {
-  const session = await getServerSession(authOptions);
-
-  if (!session) {
-    return (
-      <div className="p-10 text-center">
-        <h1 className="text-2xl font-bold">Login Required</h1>
-        <p className="mt-4">Please login to subscribe to creators.</p>
-        <Link href="/auth/login" className="underline text-blue-600">Login</Link>
-      </div>
-    );
-  }
+export default async function SfwSubscribePage({ params }) {
+  const { username } = params;
 
   const creator = await prisma.user.findUnique({
-    where: { username: params.username },
-    select: {
-      username: true,
-      email: true,
-      sfwPrice: true,
-    },
+    where: { username },
+    select: { username: true, sfwPrice: true }
   });
 
-  if (!creator || creator.sfwPrice === null) {
-    return (
-      <div className="p-10 text-center">
-        <h1 className="text-xl font-bold">Creator not found</h1>
-      </div>
-    );
-  }
-
-  // Build the dynamic CCBill link (placeholder for now)
-  const ccbillLink = `/api/ccbill/create-link?creator=${creator.username}&section=SFW`;
+  if (!creator) return <div className="p-10 text-red-600">Creator not found</div>;
 
   return (
-    <div className="max-w-xl mx-auto mt-10 p-6 border rounded shadow">
-      <h1 className="text-3xl font-bold mb-2">@{creator.username}</h1>
-      <p className="text-gray-600 mb-6">SFW Subscription</p>
+    <div className="max-w-xl mx-auto p-10">
+      <h1 className="text-3xl font-bold mb-4">Subscribe to {creator.username}</h1>
 
-      <div className="text-4xl font-bold mb-6">${creator.sfwPrice}</div>
+      <p className="text-lg mb-4">SFW Subscription: ${creator.sfwPrice}</p>
 
-      <Link 
-        href={ccbillLink}
-        className="w-full block bg-blue-600 hover:bg-blue-700 text-white text-center py-3 rounded"
+      <a
+        href={`/api/ccbill/create-link?creator=${creator.username}&section=SFW`}
+        className="bg-blue-600 text-white px-4 py-2 rounded"
       >
-        Subscribe Now
-      </Link>
+        Continue to Billing
+      </a>
     </div>
   );
 }
